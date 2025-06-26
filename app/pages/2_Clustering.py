@@ -1,6 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-#import seaborn as sns
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
+import numpy as np
 import folium
 from folium import GeoJson, GeoJsonTooltip
 from streamlit_folium import st_folium
@@ -63,7 +65,6 @@ tabla_clusters = (
     .sort_values('cluster')
 )
 
-# Cambiar la numeración para que empiece en 1
 tabla_clusters['cluster'] = tabla_clusters['cluster'] + 1
 st.dataframe(tabla_clusters)
 
@@ -81,27 +82,33 @@ df_tema_dominante = pd.DataFrame({
 })
 
 fig, ax = plt.subplots(figsize=(7, 4))
-sns.barplot(
-    data=df_tema_dominante,
-    x='cluster',
-    y='proporcion',
-    hue='tema',
-    dodge=False,
-    palette='Set2',
-    ax=ax
+
+# Paleta de colores sin seaborn
+colors = cm.Set2(np.linspace(0, 1, len(df_tema_dominante)))
+
+bars = ax.bar(
+    df_tema_dominante['cluster'],
+    df_tema_dominante['proporcion'],
+    color=colors
 )
+
+for i, bar in enumerate(bars):
+    tema = df_tema_dominante.iloc[i]['tema']
+    height = bar.get_height()
+    ax.text(bar.get_x() + bar.get_width()/2, height + 0.02, tema, ha='center', va='bottom', fontsize=9)
+
 plt.title("Tema más relevante por clúster")
 plt.ylabel("Proporción media del tema dominante (%)")
 plt.xlabel("Clúster")
 ax.set_ylim(0, 1)
 yticks = ax.get_yticks()
 ax.set_yticklabels([f"{int(y*100)}%" for y in yticks])
+
 st.pyplot(fig)
 
 # --------- MAPA FOLIUM ---------
 st.subheader("🗺️ Mapa de clústeres por barrio")
 
-# Cargar GeoJSON como diccionario
 @st.cache_data
 def cargar_geojson():
     with open("data/barris-barrios.geojson", "r", encoding="utf-8") as f:
@@ -109,23 +116,21 @@ def cargar_geojson():
 
 geojson_data = cargar_geojson()
 
-# Crear diccionario {BARRIO: CLUSTER}
 tabla_pct = tabla_pct.reset_index()
 tabla_pct['barrio_localizacion'] = tabla_pct['barrio_localizacion'].str.upper().str.strip()
 cluster_dict = dict(zip(tabla_pct['barrio_localizacion'], tabla_pct['cluster']))
 
-# Añadir propiedad 'cluster' y 'cluster_display' a cada feature
 for feature in geojson_data["features"]:
     barrio = feature["properties"]["nombre"].upper().strip()
     cluster = cluster_dict.get(barrio)
     feature["properties"]["cluster"] = cluster
     feature["properties"]["cluster_display"] = int(cluster) + 1 if cluster is not None else 'N/A'
 
-# Paleta de colores para los clústeres
-colors = sns.color_palette("Set1", n_colors=k).as_hex()
-colores_clusters = {i: colors[i] for i in range(k)}
+# Nuevos colores para los clústeres
+colors_map = cm.get_cmap("Set1", k)
+colors_hex = [mcolors.to_hex(colors_map(i)) for i in range(k)]
+colores_clusters = {i: colors_hex[i] for i in range(k)}
 
-# Estilo para cada feature en función del cluster
 def style_function(feature):
     cluster = feature['properties'].get('cluster')
     if cluster is None:
@@ -157,7 +162,6 @@ tooltip = GeoJsonTooltip(
     """
 )
 
-# Crear mapa con folium
 m = folium.Map(location=[39.47, -0.38], zoom_start=12)
 
 GeoJson(
