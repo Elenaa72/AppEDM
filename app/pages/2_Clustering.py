@@ -24,8 +24,8 @@ df = df[df['barrio_localizacion'] != 'En dependencias municipales']
 df['fecha_entrada_ayuntamiento'] = pd.to_datetime(df['fecha_entrada_ayuntamiento'], errors='coerce')
 df['año'] = df['fecha_entrada_ayuntamiento'].dt.year
 
-df['barrio_localizacion'] = df['barrio_localizacion'].str.upper().str.strip()
-df['distrito_localizacion'] = df['distrito_localizacion'].str.upper().str.strip()
+df['barrio_localizacion'] = df['barrio_localizacion'].str.upper()
+df['distrito_localizacion'] = df['distrito_localizacion'].str.upper()
 
 no_validos = ['NO CONSTA', 'NO HI CONSTA', 'FORA DE VALÈNCIA', 'FORA  DE VALÈNCIA', 'FUERA DE VALÈNCIA', 'EN DEPENDENCIAS MUNICIPALES']
 df = df[(~df['distrito_localizacion'].isin(no_validos)) & (~df['barrio_localizacion'].isin(no_validos))]
@@ -48,13 +48,13 @@ tabla_pct = tabla.div(tabla.sum(axis=1), axis=0)
 k = 4
 modelo = KMeans(n_clusters=k, random_state=0)
 clusters = modelo.fit_predict(tabla_pct)
-tabla_pct = tabla_pct.reset_index()
 tabla_pct['cluster'] = clusters
 
 st.subheader("Distribución de Barrios por Clúster")
 
 tabla_clusters = (
     tabla_pct
+    .reset_index()
     .groupby('cluster')['barrio_localizacion']
     .apply(lambda x: ', '.join(sorted(x)))
     .reset_index()
@@ -79,6 +79,7 @@ df_tema_dominante = pd.DataFrame({
     'proporcion': valor_dominante
 })
 
+# Gráfico de barras simple sin seaborn
 fig, ax = plt.subplots(figsize=(7, 4))
 for i, row in df_tema_dominante.iterrows():
     ax.bar(row['cluster'], row['proporcion'], label=row['tema'])
@@ -92,8 +93,8 @@ ax.legend(title='Tema')
 st.pyplot(fig)
 
 # --------- MAPA FOLIUM ---------
-st.title("Mapa con Clustering de Barrios")
 
+@st.cache_data
 @st.cache_data
 def cargar_geojson_limpio(ruta):
     with open(ruta, "r", encoding="utf-8") as f:
@@ -123,19 +124,21 @@ def cargar_geojson_limpio(ruta):
     data["features"] = features_limpias
     return data
 
-geojson_data = cargar_geojson_limpio("./app/data/barris-barrios.geojson")
 
-# Crear diccionario barrio -> cluster para búsqueda rápida
+
+
+
+# Convertir barrios de clustering a mayúsculas y limpiar espacios
+tabla_pct = tabla_pct.reset_index()
+tabla_pct['barrio_localizacion'] = tabla_pct['barrio_localizacion'].str.upper().str.strip()
 cluster_dict = dict(zip(tabla_pct['barrio_localizacion'], tabla_pct['cluster']))
 
-# Añadir propiedad cluster a cada feature basado en 'nombre' (en mayúsculas y limpio)
+# Añadir propiedad cluster a cada feature basado en 'nombre' (también en mayúsculas)
 for feature in geojson_data["features"]:
     barrio = feature["properties"].get("nombre", "").upper().strip()
     cluster = cluster_dict.get(barrio)
     feature["properties"]["cluster"] = int(cluster) if cluster is not None else -1
     feature["properties"]["cluster_display"] = int(cluster) + 1 if cluster is not None else 0
-
-# Colores por clúster
 colores_clusters = {
     0: '#e41a1c',  # rojo
     1: '#377eb8',  # azul
@@ -143,6 +146,24 @@ colores_clusters = {
     3: '#984ea3'   # morado
 }
 color_sin_cluster = '#8c8c8c'  # gris
+
+def style_function(feature):
+    cluster = feature['properties'].get('cluster')
+    if cluster is None or cluster == -1:
+        return {
+            'fillColor': color_sin_cluster,
+            'color': 'black',
+            'weight': 0.5,
+            'fillOpacity': 0.5
+        }
+    else:
+        return {
+            'fillColor': colores_clusters.get(cluster, color_sin_cluster),
+            'color': 'black',
+            'weight': 0.5,
+            'fillOpacity': 0.7
+        }
+
 
 def style_function(feature):
     cluster = feature['properties'].get('cluster')
