@@ -62,6 +62,7 @@ tabla_clusters = (
     .sort_values('cluster')
 )
 
+# Cambiar la numeración para que empiece en 1
 tabla_clusters['cluster'] = tabla_clusters['cluster'] + 1
 st.dataframe(tabla_clusters)
 
@@ -78,6 +79,7 @@ df_tema_dominante = pd.DataFrame({
     'proporcion': valor_dominante
 })
 
+# Gráfico de barras simple sin seaborn
 fig, ax = plt.subplots(figsize=(7, 4))
 for i, row in df_tema_dominante.iterrows():
     ax.bar(row['cluster'], row['proporcion'], label=row['tema'])
@@ -92,34 +94,77 @@ st.pyplot(fig)
 
 # --------- MAPA FOLIUM ---------
 
-st.subheader("🗺️ Mapa simple para prueba de GeoJSON y Folium")
-
 @st.cache_data
-def cargar_geojson():
-    with open("./app/data/barris-barrios.geojson", "r", encoding="utf-8") as f:
+def cargar_geojson_limpio(ruta):
+    with open(ruta, "r", encoding="utf-8") as f:
         data = json.load(f)
-    data["features"] = data["features"][:5]
-    # Limpieza para evitar tipos no serializables
-    for feature in data["features"]:
-        props = feature.get("properties", {})
-        for k, v in list(props.items()):
-            if not isinstance(v, (str, int, float, bool, type(None))):
-                props[k] = str(v)
+
+    features_limpias = []
+    for feature in data.get("features", []):
+        try:
+            # Limpiar propiedades para solo valores serializables
+            props = feature.get("properties", {})
+            props_limpias = {}
+            for k, v in props.items():
+                if isinstance(v, (str, int, float, bool)) or v is None:
+                    props_limpias[k] = v
+                else:
+                    props_limpias[k] = str(v)
+
+            feature["properties"] = props_limpias
+
+            # Validar que la feature se puede serializar sin error
+            json.dumps(feature)
+
+            features_limpias.append(feature)
+        except Exception as e:
+            st.warning(f"Feature descartada por error de serialización: {e}")
+
+    data["features"] = features_limpias
     return data
 
-geojson_data = cargar_geojson()
+
+geojson_data = cargar_geojson_limpio("./app/data/barris-barrios.geojson")
+
+# Paleta de colores para los clusters (usamos colores básicos)
+colores_clusters = {
+    0: '#e41a1c',  # rojo
+    1: '#377eb8',  # azul
+    2: '#4daf4a',  # verde
+    3: '#984ea3'   # morado
+}
+color_sin_cluster = '#8c8c8c'  # gris para sin cluster
+
+tabla_pct = tabla_pct.reset_index()
+tabla_pct['barrio_localizacion'] = tabla_pct['barrio_localizacion'].str.upper().str.strip()
+cluster_dict = dict(zip(tabla_pct['barrio_localizacion'], tabla_pct['cluster']))
+
+for feature in geojson_data["features"]:
+    barrio = feature["properties"]["nombre"].upper().strip()
+    cluster = cluster_dict.get(barrio)
+    feature["properties"]["cluster"] = int(cluster) if cluster is not None else -1
+    feature["properties"]["cluster_display"] = int(cluster) + 1 if cluster is not None else 0
 
 def style_function(feature):
-    return {
-        'fillColor': '#4daf4a',
-        'color': 'black',
-        'weight': 0.5,
-        'fillOpacity': 0.7
-    }
+    cluster = feature['properties'].get('cluster')
+    if cluster is None or cluster == -1:
+        return {
+            'fillColor': color_sin_cluster,
+            'color': 'black',
+            'weight': 0.5,
+            'fillOpacity': 0.5
+        }
+    else:
+        return {
+            'fillColor': colores_clusters.get(cluster, color_sin_cluster),
+            'color': 'black',
+            'weight': 0.5,
+            'fillOpacity': 0.7
+        }
 
 tooltip = GeoJsonTooltip(
-    fields=['nombre'],
-    aliases=['Barrio:'],
+    fields=['nombre', 'cluster_display'],
+    aliases=['Barrio:', 'Clúster:'],
     localize=True,
     sticky=False,
     labels=True,
