@@ -1,6 +1,7 @@
-streamlit
 pandas
-prophet
-numpy
 matplotlib
-geopandas
+seaborn
+folium
+streamlit
+streamlit-folium
+scikit-learn
