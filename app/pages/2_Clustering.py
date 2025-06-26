@@ -1,8 +1,5 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
-import numpy as np
 import folium
 from folium import GeoJson, GeoJsonTooltip
 from streamlit_folium import st_folium
@@ -65,6 +62,7 @@ tabla_clusters = (
     .sort_values('cluster')
 )
 
+# Cambiar la numeración para que empiece en 1
 tabla_clusters['cluster'] = tabla_clusters['cluster'] + 1
 st.dataframe(tabla_clusters)
 
@@ -81,29 +79,17 @@ df_tema_dominante = pd.DataFrame({
     'proporcion': valor_dominante
 })
 
+# Gráfico de barras simple sin seaborn
 fig, ax = plt.subplots(figsize=(7, 4))
+for i, row in df_tema_dominante.iterrows():
+    ax.bar(row['cluster'], row['proporcion'], label=row['tema'])
 
-# Paleta de colores sin seaborn
-colors = cm.Set2(np.linspace(0, 1, len(df_tema_dominante)))
-
-bars = ax.bar(
-    df_tema_dominante['cluster'],
-    df_tema_dominante['proporcion'],
-    color=colors
-)
-
-for i, bar in enumerate(bars):
-    tema = df_tema_dominante.iloc[i]['tema']
-    height = bar.get_height()
-    ax.text(bar.get_x() + bar.get_width()/2, height + 0.02, tema, ha='center', va='bottom', fontsize=9)
-
-plt.title("Tema más relevante por clúster")
-plt.ylabel("Proporción media del tema dominante (%)")
-plt.xlabel("Clúster")
+ax.set_title("Tema más relevante por clúster")
+ax.set_ylabel("Proporción media del tema dominante")
+ax.set_xlabel("Clúster")
 ax.set_ylim(0, 1)
-yticks = ax.get_yticks()
-ax.set_yticklabels([f"{int(y*100)}%" for y in yticks])
-
+ax.set_xticks(df_tema_dominante['cluster'])
+ax.legend(title='Tema')
 st.pyplot(fig)
 
 # --------- MAPA FOLIUM ---------
@@ -120,29 +106,34 @@ tabla_pct = tabla_pct.reset_index()
 tabla_pct['barrio_localizacion'] = tabla_pct['barrio_localizacion'].str.upper().str.strip()
 cluster_dict = dict(zip(tabla_pct['barrio_localizacion'], tabla_pct['cluster']))
 
+# Añadir propiedades 'cluster' e 'cluster_display' garantizando valores serializables JSON
 for feature in geojson_data["features"]:
     barrio = feature["properties"]["nombre"].upper().strip()
     cluster = cluster_dict.get(barrio)
-    feature["properties"]["cluster"] = cluster
-    feature["properties"]["cluster_display"] = int(cluster) + 1 if cluster is not None else 'N/A'
+    feature["properties"]["cluster"] = int(cluster) if cluster is not None else -1
+    feature["properties"]["cluster_display"] = int(cluster) + 1 if cluster is not None else 0
 
-# Nuevos colores para los clústeres
-colors_map = cm.get_cmap("Set1", k)
-colors_hex = [mcolors.to_hex(colors_map(i)) for i in range(k)]
-colores_clusters = {i: colors_hex[i] for i in range(k)}
+# Paleta de colores para los clusters (usamos colores básicos)
+colores_clusters = {
+    0: '#e41a1c',  # rojo
+    1: '#377eb8',  # azul
+    2: '#4daf4a',  # verde
+    3: '#984ea3'   # morado
+}
+color_sin_cluster = '#8c8c8c'  # gris para sin cluster
 
 def style_function(feature):
     cluster = feature['properties'].get('cluster')
-    if cluster is None:
+    if cluster is None or cluster == -1:
         return {
-            'fillColor': '#8c8c8c',
+            'fillColor': color_sin_cluster,
             'color': 'black',
             'weight': 0.5,
             'fillOpacity': 0.5
         }
     else:
         return {
-            'fillColor': colores_clusters.get(int(cluster), '#8c8c8c'),
+            'fillColor': colores_clusters.get(cluster, color_sin_cluster),
             'color': 'black',
             'weight': 0.5,
             'fillOpacity': 0.7
