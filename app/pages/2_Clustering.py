@@ -106,12 +106,31 @@ tabla_pct = tabla_pct.reset_index()
 tabla_pct['barrio_localizacion'] = tabla_pct['barrio_localizacion'].str.upper().str.strip()
 cluster_dict = dict(zip(tabla_pct['barrio_localizacion'], tabla_pct['cluster']))
 
-# Añadir propiedades 'cluster' e 'cluster_display' garantizando valores serializables JSON
+# Añadir propiedades 'cluster' y 'cluster_display'
 for feature in geojson_data["features"]:
     barrio = feature["properties"]["nombre"].upper().strip()
     cluster = cluster_dict.get(barrio)
     feature["properties"]["cluster"] = int(cluster) if cluster is not None else -1
     feature["properties"]["cluster_display"] = int(cluster) + 1 if cluster is not None else 0
+
+# --- Sanitizar propiedades para evitar errores JSON ---
+def sanitize_properties(feature):
+    props = feature.get("properties", {})
+    sanitized = {}
+    for k, v in props.items():
+        if v is None:
+            sanitized[k] = None
+        elif isinstance(v, (int, float, str, bool)):
+            if isinstance(v, float) and (pd.isna(v) or v != v):
+                sanitized[k] = None
+            else:
+                sanitized[k] = v
+        else:
+            sanitized[k] = str(v)
+    feature["properties"] = sanitized
+
+for feature in geojson_data.get("features", []):
+    sanitize_properties(feature)
 
 # Paleta de colores para los clusters (usamos colores básicos)
 colores_clusters = {
