@@ -5,7 +5,7 @@
 #from folium import GeoJson, GeoJsonTooltip
 #from streamlit_folium import st_folium
 #from sklearn.cluster import KMeans
-#import streamlit as st
+import streamlit as st
 #import json
 
 st.set_page_config(layout="wide")
