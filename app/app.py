@@ -46,6 +46,8 @@ with open("./app/data/barris-barrios.geojson", "r", encoding="utf-8") as f:
 # ----------------------------
 conteo_barrios = df['barrio_localizacion'].value_counts().reset_index()
 conteo_barrios.columns = ['nombre', 'conteo']
+conteo_barrios['nombre'] = conteo_barrios['nombre'].astype(str)
+conteo_barrios['conteo'] = conteo_barrios['conteo'].astype(int)
 
 # Crear diccionario de conteo
 conteo_dict = dict(zip(conteo_barrios['nombre'], conteo_barrios['conteo']))
@@ -56,19 +58,22 @@ conteo_dict = dict(zip(conteo_barrios['nombre'], conteo_barrios['conteo']))
 for feature in geojson_data['features']:
     props = feature['properties']
     nombre = str(props.get('nombre', '')).upper()
-    poblacion = props.get('poblacion', 1)
 
-    # Normalizar tipos
+    poblacion = props.get('poblacion', 1)
     try:
-        poblacion = int(poblacion)
-        conteo = int(conteo_dict.get(nombre, 0))
+        poblacion = int(poblacion) if poblacion not in [None, '', 'NA'] else 1
     except:
         poblacion = 1
+
+    conteo = conteo_dict.get(nombre, 0)
+    try:
+        conteo = int(conteo)
+    except:
         conteo = 0
 
-    props['nombre'] = nombre
-    props['poblacion'] = poblacion
-    props['conteo'] = conteo
+    props['nombre'] = str(nombre)
+    props['poblacion'] = int(poblacion)
+    props['conteo'] = int(conteo)
     props['incidencias_per_1000hab'] = round(conteo / poblacion * 1000, 2) if poblacion > 0 else 0.0
 
 # ----------------------------
@@ -98,7 +103,7 @@ GeoJson(
     )
 ).add_to(m)
 
-# ✅ Esto ya no debería dar error
+# ✅ Renderizar mapa
 st_folium(m, width=1000, height=500)
 
 # ----------------------------
