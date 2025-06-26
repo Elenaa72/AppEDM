@@ -1,12 +1,12 @@
 import pandas as pd
-#import matplotlib.pyplot as plt
-#import seaborn as sns
-#import folium
-#from folium import GeoJson, GeoJsonTooltip
-#from streamlit_folium import st_folium
+import matplotlib.pyplot as plt
+import seaborn as sns
+import folium
+from folium import GeoJson, GeoJsonTooltip
+from streamlit_folium import st_folium
 from sklearn.cluster import KMeans
 import streamlit as st
-#import json
+import json
 
 st.set_page_config(layout="wide")
 st.title("Clustering de Barrios según Tipología de Incidencias")
