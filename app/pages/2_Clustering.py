@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
+#import seaborn as sns
 import folium
 from folium import GeoJson, GeoJsonTooltip
 from streamlit_folium import st_folium
