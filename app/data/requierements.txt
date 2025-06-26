@@ -1,6 +1,0 @@
-streamlit
-pandas
-prophet
-numpy
-matplotlib
-geopandas
