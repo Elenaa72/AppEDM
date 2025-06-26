@@ -111,7 +111,7 @@ st.subheader("🗺️ Mapa de clústeres por barrio")
 
 @st.cache_data
 def cargar_geojson():
-    with open("data/barris-barrios.geojson", "r", encoding="utf-8") as f:
+    with open("./app/data/barris-barrios.geojson", "r", encoding="utf-8") as f:
         return json.load(f)
 
 geojson_data = cargar_geojson()
