@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import json
 import matplotlib.pyplot as plt
-import folium
-from folium import Choropleth, GeoJson, GeoJsonTooltip
-from streamlit_folium import st_folium
+#import folium
+#from folium import Choropleth, GeoJson, GeoJsonTooltip
+#from streamlit_folium import st_folium
 
 # ----------------------------
 # Configuración de página (debe ir justo después de los imports)
