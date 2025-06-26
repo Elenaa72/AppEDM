@@ -4,12 +4,12 @@
 
 
 
-#import pandas as pd
+import pandas as pd
 #from prophet import Prophet
 #from sklearn.metrics import mean_absolute_error, mean_squared_error
 #import numpy as np
 #import plotly.graph_objs as go
-#import streamlit as st
+import streamlit as st
 
 # ------------ FUNCIÓN PARA PREPARAR LOS DATOS ------------------
 def construir_df_prophet(df, tema='TODOS', barrio='TODOS'):
