@@ -7,7 +7,7 @@ from folium import Choropleth, GeoJson, GeoJsonTooltip
 from streamlit_folium import st_folium
 
 # ----------------------------
-# Configuración de página (debe ir justo después de los imports)
+# Configuración de página
 # ----------------------------
 st.set_page_config(page_title="Incidencias en Valencia", layout="wide")
 
@@ -23,30 +23,23 @@ df = pd.read_csv("./app/data/total-castellano.csv", sep=';')
 df = df.drop(columns=['distrito_solicitante', 'barrio_solicitante'], errors='ignore')
 df = df[df['barrio_localizacion'] != 'En dependencias municipales']
 
-# Pasar a mayúsculas para consistencia
+# Mayúsculas para consistencia
 df['barrio_localizacion'] = df['barrio_localizacion'].str.upper()
 df['distrito_localizacion'] = df['distrito_localizacion'].str.upper()
 
-# Lista de valores no válidos
-no_validos = ['NO CONSTA', 'NO HI CONSTA', 'FORA DE VALÈNCIA', 'FORA  DE VALÈNCIA', 'FUERA DE VALÈNCIA', 'EN DEPENDENCIAS MUNICIPALES']
-
-# Filtrar el DataFrame para quedarte solo con filas válidas
+# Filtrar valores no válidos
+no_validos = ['NO CONSTA', 'NO HI CONSTA', 'FORA DE VALÈNCIA', 'FORA  DE VALÈNCIA',
+              'FUERA DE VALÈNCIA', 'EN DEPENDENCIAS MUNICIPALES']
 df = df[
     (~df['distrito_localizacion'].isin(no_validos)) &
     (~df['barrio_localizacion'].isin(no_validos))
 ]
 
 # ----------------------------
-# Cargar GeoJSON de barrios (sin geopandas)
+# Cargar GeoJSON
 # ----------------------------
 with open("./app/data/barris-barrios.geojson", "r", encoding="utf-8") as f:
     geojson_data = json.load(f)
-
-# Normalizar propiedades del geojson para acceso fácil
-for feature in geojson_data['features']:
-    feature['properties']['nombre'] = feature['properties']['nombre'].upper()
-    if 'poblacion' not in feature['properties']:
-        feature['properties']['poblacion'] = 1  # evitar división por cero
 
 # ----------------------------
 # Contar incidencias por barrio
@@ -54,16 +47,29 @@ for feature in geojson_data['features']:
 conteo_barrios = df['barrio_localizacion'].value_counts().reset_index()
 conteo_barrios.columns = ['nombre', 'conteo']
 
-# Crear un diccionario de conteos para unir con geojson
+# Crear diccionario de conteo
 conteo_dict = dict(zip(conteo_barrios['nombre'], conteo_barrios['conteo']))
 
-# Añadir conteo y tasa por 1000 habitantes a cada barrio
+# ----------------------------
+# Limpiar y preparar GeoJSON (evitar errores de serialización)
+# ----------------------------
 for feature in geojson_data['features']:
-    nombre = feature['properties']['nombre']
-    conteo = conteo_dict.get(nombre, 0)
-    poblacion = feature['properties'].get('poblacion', 1)
-    feature['properties']['conteo'] = conteo
-    feature['properties']['incidencias_per_1000hab'] = (conteo / poblacion * 1000) if poblacion > 0 else 0
+    props = feature['properties']
+    nombre = str(props.get('nombre', '')).upper()
+    poblacion = props.get('poblacion', 1)
+
+    # Normalizar tipos
+    try:
+        poblacion = int(poblacion)
+        conteo = int(conteo_dict.get(nombre, 0))
+    except:
+        poblacion = 1
+        conteo = 0
+
+    props['nombre'] = nombre
+    props['poblacion'] = poblacion
+    props['conteo'] = conteo
+    props['incidencias_per_1000hab'] = round(conteo / poblacion * 1000, 2) if poblacion > 0 else 0.0
 
 # ----------------------------
 # Mapa Interactivo
@@ -85,13 +91,18 @@ Choropleth(
 
 GeoJson(
     geojson_data,
-    tooltip=GeoJsonTooltip(fields=["nombre", "conteo"], aliases=["Barrio", "Incidencias"])
+    tooltip=GeoJsonTooltip(
+        fields=["nombre", "conteo", "incidencias_per_1000hab"],
+        aliases=["Barrio", "Incidencias", "Incidencias por 1000 hab."],
+        localize=True
+    )
 ).add_to(m)
 
+# ✅ Esto ya no debería dar error
 st_folium(m, width=1000, height=500)
 
 # ----------------------------
-# Gráfico de tarta
+# Gráfico de tarta por tema
 # ----------------------------
 st.subheader("🥧 Distribución de incidencias por tipo (Tema)")
 
