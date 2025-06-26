@@ -103,7 +103,7 @@ st.subheader("🗺️ Mapa de clústeres por barrio")
 
 @st.cache_data
 def cargar_geojson():
-    with open("data/barris-barrios.geojson", "r", encoding="utf-8") as f:
+    with open(""./app/data/barris-barrios.geojson", "r", encoding="utf-8") as f:
         data = json.load(f)
     # Normalizar nombres en el geojson
     for feature in data['features']:
