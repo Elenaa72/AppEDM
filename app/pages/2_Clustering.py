@@ -93,74 +93,31 @@ ax.legend(title='Tema')
 st.pyplot(fig)
 
 # --------- MAPA FOLIUM ---------
-st.subheader("🗺️ Mapa de clústeres por barrio")
+
+st.set_page_config(layout="wide")
+st.title("Mapa simple para prueba de GeoJSON y Folium")
 
 @st.cache_data
 def cargar_geojson():
     with open("./app/data/barris-barrios.geojson", "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+    # Reducimos a 5 features para prueba
+    data["features"] = data["features"][:5]
+    return data
 
 geojson_data = cargar_geojson()
 
-tabla_pct = tabla_pct.reset_index()
-tabla_pct['barrio_localizacion'] = tabla_pct['barrio_localizacion'].str.upper().str.strip()
-cluster_dict = dict(zip(tabla_pct['barrio_localizacion'], tabla_pct['cluster']))
-
-# Añadir propiedades 'cluster' y 'cluster_display'
-for feature in geojson_data["features"]:
-    barrio = feature["properties"]["nombre"].upper().strip()
-    cluster = cluster_dict.get(barrio)
-    feature["properties"]["cluster"] = int(cluster) if cluster is not None else -1
-    feature["properties"]["cluster_display"] = int(cluster) + 1 if cluster is not None else 0
-
-# --- Sanitizar propiedades para evitar errores JSON ---
-def sanitize_properties(feature):
-    props = feature.get("properties", {})
-    sanitized = {}
-    for k, v in props.items():
-        if v is None:
-            sanitized[k] = None
-        elif isinstance(v, (int, float, str, bool)):
-            if isinstance(v, float) and (pd.isna(v) or v != v):
-                sanitized[k] = None
-            else:
-                sanitized[k] = v
-        else:
-            sanitized[k] = str(v)
-    feature["properties"] = sanitized
-
-for feature in geojson_data.get("features", []):
-    sanitize_properties(feature)
-
-# Paleta de colores para los clusters (usamos colores básicos)
-colores_clusters = {
-    0: '#e41a1c',  # rojo
-    1: '#377eb8',  # azul
-    2: '#4daf4a',  # verde
-    3: '#984ea3'   # morado
-}
-color_sin_cluster = '#8c8c8c'  # gris para sin cluster
-
 def style_function(feature):
-    cluster = feature['properties'].get('cluster')
-    if cluster is None or cluster == -1:
-        return {
-            'fillColor': color_sin_cluster,
-            'color': 'black',
-            'weight': 0.5,
-            'fillOpacity': 0.5
-        }
-    else:
-        return {
-            'fillColor': colores_clusters.get(cluster, color_sin_cluster),
-            'color': 'black',
-            'weight': 0.5,
-            'fillOpacity': 0.7
-        }
+    return {
+        'fillColor': '#4daf4a',  # verde
+        'color': 'black',
+        'weight': 0.5,
+        'fillOpacity': 0.7
+    }
 
 tooltip = GeoJsonTooltip(
-    fields=['nombre', 'cluster_display'],
-    aliases=['Barrio:', 'Clúster:'],
+    fields=['nombre'],
+    aliases=['Barrio:'],
     localize=True,
     sticky=False,
     labels=True,
