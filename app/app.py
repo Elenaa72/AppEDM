@@ -1,7 +1,17 @@
-# Configuración de página
-st.set_page_config(page_title="Incidencias en Valencia", layout="wide")
-st.title("📍 Análisis Exploratorio de Incidencias Urbanas en Valencia")
+import streamlit as st
+import pandas as pd
+import json
+import matplotlib.pyplot as plt
+import folium
+from folium import Choropleth, GeoJson, GeoJsonTooltip
+from streamlit_folium import st_folium
 
+# ----------------------------
+# Configuración de página (debe ir justo después de los imports)
+# ----------------------------
+st.set_page_config(page_title="Incidencias en Valencia", layout="wide")
+
+st.title("📍 Análisis Exploratorio de Incidencias Urbanas en Valencia")
 st.markdown("""
 Esta sección presenta un análisis exploratorio de los datos de incidencias ciudadanas en Valencia.
 """)
@@ -9,7 +19,7 @@ Esta sección presenta un análisis exploratorio de los datos de incidencias ciu
 # ----------------------------
 # Cargar datos
 # ----------------------------
-df = pd.read_csv(".AppEDM/app/data/total-castellano.csv", sep=';')
+df = pd.read_csv("./app/app/data/total-castellano.csv", sep=';')
 df = df.drop(columns=['distrito_solicitante', 'barrio_solicitante'], errors='ignore')
 df = df[df['barrio_localizacion'] != 'En dependencias municipales']
 
@@ -29,14 +39,12 @@ df = df[
 # ----------------------------
 # Cargar GeoJSON de barrios (sin geopandas)
 # ----------------------------
-with open("data/barris-barrios.geojson", "r", encoding="utf-8") as f:
+with open("./app/app/data/barris-barrios.geojson", "r", encoding="utf-8") as f:
     geojson_data = json.load(f)
 
 # Normalizar propiedades del geojson para acceso fácil
 for feature in geojson_data['features']:
     feature['properties']['nombre'] = feature['properties']['nombre'].upper()
-    # Si 'poblacion' está dentro de properties, se puede usar para cálculo de incidencias_per_1000hab
-    # En este ejemplo, asumiremos que poblacion está ahí
     if 'poblacion' not in feature['properties']:
         feature['properties']['poblacion'] = 1  # evitar división por cero
 
@@ -49,7 +57,7 @@ conteo_barrios.columns = ['nombre', 'conteo']
 # Crear un diccionario de conteos para unir con geojson
 conteo_dict = dict(zip(conteo_barrios['nombre'], conteo_barrios['conteo']))
 
-# Añadir conteo y incidencias per 1000 habitantes a las propiedades del geojson
+# Añadir conteo y tasa por 1000 habitantes a cada barrio
 for feature in geojson_data['features']:
     nombre = feature['properties']['nombre']
     conteo = conteo_dict.get(nombre, 0)
@@ -58,7 +66,7 @@ for feature in geojson_data['features']:
     feature['properties']['incidencias_per_1000hab'] = (conteo / poblacion * 1000) if poblacion > 0 else 0
 
 # ----------------------------
-# Mapa Interactivo de Barrios
+# Mapa Interactivo
 # ----------------------------
 st.subheader("🌍 Mapa interactivo de incidencias por barrio")
 
@@ -83,9 +91,8 @@ GeoJson(
 st_folium(m, width=1000, height=500)
 
 # ----------------------------
-# Gráfico de tarta por tema
+# Gráfico de tarta
 # ----------------------------
-
 st.subheader("🥧 Distribución de incidencias por tipo (Tema)")
 
 tema_counts = df['tema'].value_counts()
