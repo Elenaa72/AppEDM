@@ -1,12 +1,3 @@
-import streamlit as st
-import pandas as pd
-import geopandas as gpd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import folium
-from folium import Choropleth, GeoJson, GeoJsonTooltip
-from streamlit_folium import st_folium
-
 # Configuración de página
 st.set_page_config(page_title="Incidencias en Valencia", layout="wide")
 st.title("📍 Análisis Exploratorio de Incidencias Urbanas en Valencia")
@@ -18,7 +9,7 @@ Esta sección presenta un análisis exploratorio de los datos de incidencias ciu
 # ----------------------------
 # Cargar datos
 # ----------------------------
-df = pd.read_csv("data/total-castellano.csv", sep=';')
+df = pd.read_csv(".AppEDM/app/data/total-castellano.csv", sep=';')
 df = df.drop(columns=['distrito_solicitante', 'barrio_solicitante'], errors='ignore')
 df = df[df['barrio_localizacion'] != 'En dependencias municipales']
 
@@ -27,7 +18,7 @@ df['barrio_localizacion'] = df['barrio_localizacion'].str.upper()
 df['distrito_localizacion'] = df['distrito_localizacion'].str.upper()
 
 # Lista de valores no válidos
-no_validos = ['NO CONSTA', 'NO HI CONSTA', 'FORA DE VALÈNCIA', 'FORA  DE VALÈNCIA', 'FUERA DE VALÈNCIA' 'EN DEPENDENCIAS MUNICIPALES']
+no_validos = ['NO CONSTA', 'NO HI CONSTA', 'FORA DE VALÈNCIA', 'FORA  DE VALÈNCIA', 'FUERA DE VALÈNCIA', 'EN DEPENDENCIAS MUNICIPALES']
 
 # Filtrar el DataFrame para quedarte solo con filas válidas
 df = df[
@@ -36,25 +27,35 @@ df = df[
 ]
 
 # ----------------------------
-# Cargar GeoDataFrame de barrios
+# Cargar GeoJSON de barrios (sin geopandas)
 # ----------------------------
-gdf_barrios = gpd.read_file("data/barris-barrios.geojson")
-gdf_barrios['nombre'] = gdf_barrios['nombre'].str.upper()
+with open("data/barris-barrios.geojson", "r", encoding="utf-8") as f:
+    geojson_data = json.load(f)
 
+# Normalizar propiedades del geojson para acceso fácil
+for feature in geojson_data['features']:
+    feature['properties']['nombre'] = feature['properties']['nombre'].upper()
+    # Si 'poblacion' está dentro de properties, se puede usar para cálculo de incidencias_per_1000hab
+    # En este ejemplo, asumiremos que poblacion está ahí
+    if 'poblacion' not in feature['properties']:
+        feature['properties']['poblacion'] = 1  # evitar división por cero
+
+# ----------------------------
 # Contar incidencias por barrio
+# ----------------------------
 conteo_barrios = df['barrio_localizacion'].value_counts().reset_index()
 conteo_barrios.columns = ['nombre', 'conteo']
 
-# Incidencias totales ya las tienes en gdf_barrios['conteo']
-gdf_barrios['incidencias_per_1000hab'] = gdf_barrios['conteo'] / gdf_barrios['poblacion'] * 1000
+# Crear un diccionario de conteos para unir con geojson
+conteo_dict = dict(zip(conteo_barrios['nombre'], conteo_barrios['conteo']))
 
-
-# Unir al GeoDataFrame
-gdf_barrios = gdf_barrios.merge(conteo_barrios, on='nombre', how='left')
-gdf_barrios['conteo'] = gdf_barrios['conteo'].fillna(0)
-
-gdf_barrios.to_file("data/barrios_enriquecido.geojson", driver="GeoJSON")
-
+# Añadir conteo y incidencias per 1000 habitantes a las propiedades del geojson
+for feature in geojson_data['features']:
+    nombre = feature['properties']['nombre']
+    conteo = conteo_dict.get(nombre, 0)
+    poblacion = feature['properties'].get('poblacion', 1)
+    feature['properties']['conteo'] = conteo
+    feature['properties']['incidencias_per_1000hab'] = (conteo / poblacion * 1000) if poblacion > 0 else 0
 
 # ----------------------------
 # Mapa Interactivo de Barrios
@@ -63,9 +64,9 @@ st.subheader("🌍 Mapa interactivo de incidencias por barrio")
 
 m = folium.Map(location=[39.47, -0.38], zoom_start=12)
 
-folium.Choropleth(
-    geo_data=gdf_barrios,
-    data=gdf_barrios,
+Choropleth(
+    geo_data=geojson_data,
+    data=conteo_barrios,
     columns=["nombre", "conteo"],
     key_on="feature.properties.nombre",
     fill_color="YlOrRd",
@@ -75,13 +76,11 @@ folium.Choropleth(
 ).add_to(m)
 
 GeoJson(
-    gdf_barrios,
+    geojson_data,
     tooltip=GeoJsonTooltip(fields=["nombre", "conteo"], aliases=["Barrio", "Incidencias"])
 ).add_to(m)
 
 st_folium(m, width=1000, height=500)
-
-
 
 # ----------------------------
 # Gráfico de tarta por tema
@@ -94,4 +93,3 @@ fig2, ax2 = plt.subplots(figsize=(7, 7))
 ax2.pie(tema_counts, labels=tema_counts.index, autopct='%1.1f%%', startangle=90)
 ax2.axis('equal')
 st.pyplot(fig2)
-
