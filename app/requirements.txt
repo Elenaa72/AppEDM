@@ -6,3 +6,4 @@ scikit-learn
 Cython>=0.29
 folium
 prophet==1.1.5
+streamlit-folium
