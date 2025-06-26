@@ -1,15 +1,15 @@
 
-import subprocess
-import sys
+#import subprocess
+#import sys
 
 
 
-import pandas as pd
-from prophet import Prophet
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-import numpy as np
-import plotly.graph_objs as go
-import streamlit as st
+#import pandas as pd
+#from prophet import Prophet
+#from sklearn.metrics import mean_absolute_error, mean_squared_error
+#import numpy as np
+#import plotly.graph_objs as go
+#import streamlit as st
 
 # ------------ FUNCIÓN PARA PREPARAR LOS DATOS ------------------
 def construir_df_prophet(df, tema='TODOS', barrio='TODOS'):
@@ -108,7 +108,7 @@ def iniciar_forecast_interactivo(df):
 # df = ...  # carga previa
 # iniciar_forecast_interactivo(df)
 
-import pandas as pd
+#import pandas as pd
 
 # Carga tus datos aquí
 df = pd.read_csv("data/total-castellano.csv", sep=';')
