@@ -4,7 +4,7 @@ import pandas as pd
 #import folium
 #from folium import GeoJson, GeoJsonTooltip
 #from streamlit_folium import st_folium
-#from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans
 import streamlit as st
 #import json
 
