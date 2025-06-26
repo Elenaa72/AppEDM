@@ -1,6 +1,6 @@
 
-streamlit
-pandas as pd
+import streamlit as st
+import pandas as pd
 numpy
 matplotlib
 scikit-learn
