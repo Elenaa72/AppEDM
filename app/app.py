@@ -19,7 +19,7 @@ Esta sección presenta un análisis exploratorio de los datos de incidencias ciu
 # ----------------------------
 # Cargar datos
 # ----------------------------
-df = pd.read_csv("./app/app/data/total-castellano.csv", sep=';')
+df = pd.read_csv("./app/data/total-castellano.csv", sep=';')
 df = df.drop(columns=['distrito_solicitante', 'barrio_solicitante'], errors='ignore')
 df = df[df['barrio_localizacion'] != 'En dependencias municipales']
 
@@ -39,7 +39,7 @@ df = df[
 # ----------------------------
 # Cargar GeoJSON de barrios (sin geopandas)
 # ----------------------------
-with open("./app/app/data/barris-barrios.geojson", "r", encoding="utf-8") as f:
+with open("./app/data/barris-barrios.geojson", "r", encoding="utf-8") as f:
     geojson_data = json.load(f)
 
 # Normalizar propiedades del geojson para acceso fácil
