@@ -2,12 +2,7 @@
 import subprocess
 import sys
 
-try:
-    from prophet import Prophet
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pystan~=2.19.1.1"])
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "prophet"])
-    from prophet import Prophet  # intenta de nuevo después de instalar
+
 
 import pandas as pd
 from prophet import Prophet
