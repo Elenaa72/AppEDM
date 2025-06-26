@@ -111,7 +111,7 @@ def iniciar_forecast_interactivo(df):
 #import pandas as pd
 
 # Carga tus datos aquí
-df = pd.read_csv("data/total-castellano.csv", sep=';')
+df = pd.read_csv("./app/data/total-castellano.csv", sep=';')
 
 df = df.drop(columns=['distrito_solicitante', 'barrio_solicitante'], errors='ignore')
 df = df[df['barrio_localizacion'] != 'En dependencias municipales']
