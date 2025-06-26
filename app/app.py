@@ -19,7 +19,7 @@ Gracias a este enfoque, se pueden detectar zonas que comparten problemáticas si
 """)
 
 # --------- CARGA DE DATOS ---------
-df = pd.read_csv("data/total-castellano.csv", sep=';')
+df = pd.read_csv("./app/data/total-castellano.csv", sep=';')
 df = df.drop(columns=['distrito_solicitante', 'barrio_solicitante'], errors='ignore')
 df = df[df['barrio_localizacion'] != 'En dependencias municipales']
 df['fecha_entrada_ayuntamiento'] = pd.to_datetime(df['fecha_entrada_ayuntamiento'], errors='coerce')
