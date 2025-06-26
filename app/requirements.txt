@@ -1,8 +1,8 @@
-streamlit
+streamlit==1.35.0
 pandas
 numpy
 matplotlib
 scikit-learn
-Cython
-pystan
-prophet
+Cython>=0.29
+pystan==2.19.1.1
+prophet==1.1.5
