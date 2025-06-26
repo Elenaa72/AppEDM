@@ -94,7 +94,7 @@ st.pyplot(fig)
 
 # --------- MAPA FOLIUM ---------
 
-st.set_page_config(layout="wide")
+
 st.title("Mapa simple para prueba de GeoJSON y Folium")
 
 @st.cache_data
