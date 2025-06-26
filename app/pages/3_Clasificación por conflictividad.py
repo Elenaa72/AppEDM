@@ -1,6 +1,6 @@
-##import pandas as pd
+import pandas as pd
 #import numpy as np
-#import streamlit as st
+import streamlit as st
 #from sklearn.ensemble import RandomForestClassifier
 #from sklearn.model_selection import train_test_split
 #from sklearn.metrics import classification_report, accuracy_score
