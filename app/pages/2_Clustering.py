@@ -62,7 +62,6 @@ tabla_clusters = (
     .sort_values('cluster')
 )
 
-# Cambiar la numeración para que empiece en 1
 tabla_clusters['cluster'] = tabla_clusters['cluster'] + 1
 st.dataframe(tabla_clusters)
 
@@ -79,7 +78,6 @@ df_tema_dominante = pd.DataFrame({
     'proporcion': valor_dominante
 })
 
-# Gráfico de barras simple sin seaborn
 fig, ax = plt.subplots(figsize=(7, 4))
 for i, row in df_tema_dominante.iterrows():
     ax.bar(row['cluster'], row['proporcion'], label=row['tema'])
@@ -94,22 +92,26 @@ st.pyplot(fig)
 
 # --------- MAPA FOLIUM ---------
 
-
-st.title("Mapa simple para prueba de GeoJSON y Folium")
+st.subheader("🗺️ Mapa simple para prueba de GeoJSON y Folium")
 
 @st.cache_data
 def cargar_geojson():
     with open("./app/data/barris-barrios.geojson", "r", encoding="utf-8") as f:
         data = json.load(f)
-    # Reducimos a 5 features para prueba
     data["features"] = data["features"][:5]
+    # Limpieza para evitar tipos no serializables
+    for feature in data["features"]:
+        props = feature.get("properties", {})
+        for k, v in list(props.items()):
+            if not isinstance(v, (str, int, float, bool, type(None))):
+                props[k] = str(v)
     return data
 
 geojson_data = cargar_geojson()
 
 def style_function(feature):
     return {
-        'fillColor': '#4daf4a',  # verde
+        'fillColor': '#4daf4a',
         'color': 'black',
         'weight': 0.5,
         'fillOpacity': 0.7
